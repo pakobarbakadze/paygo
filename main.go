@@ -4,12 +4,15 @@ import (
 	"log"
 
 	"paygo/config"
+	"paygo/infra/database"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	cfg := config.LoadConfig()
+
+	database.ConnectDB(&cfg)
 
 	r := setupRouter()
 
