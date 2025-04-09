@@ -3,18 +3,18 @@ package models
 import (
 	"time"
 
-	"gorm.io/gorm"
+	"github.com/google/uuid"
 )
 
 type User struct {
-	ID         uint           `json:"id" gorm:"primaryKey"`
-	FirstName  string         `json:"firstName" gorm:"size:100;not null"`
-	LastName   string         `json:"lastName" gorm:"size:100;not null"`
-	Email      string         `json:"email" gorm:"size:255;not null;uniqueIndex"`
-	Password   string         `json:"-" gorm:"size:255;not null"`
-	Balance    float64        `json:"balance" gorm:"default:0.00"`
-	IsVerified bool           `json:"isVerified" gorm:"default:false"`
-	CreatedAt  time.Time      `json:"createdAt"`
-	UpdatedAt  time.Time      `json:"updatedAt"`
-	DeletedAt  gorm.DeletedAt `json:"-" gorm:"index"`
+	ID           uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	Email        string    `gorm:"uniqueIndex;not null" json:"email"`
+	PasswordHash string    `gorm:"not null" json:"-"`
+	FirstName    string    `json:"first_name"`
+	LastName     string    `json:"last_name"`
+	Verified     bool      `gorm:"default:false" json:"verified"`
+	Status       string    `gorm:"default:active" json:"status"`
+	CreatedAt    time.Time `gorm:"not null" json:"created_at"`
+	UpdatedAt    time.Time `gorm:"not null" json:"updated_at"`
+	Accounts     []Account `gorm:"foreignKey:UserID" json:"accounts,omitempty"`
 }
