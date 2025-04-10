@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"paygo/config"
-	"paygo/domain/models"
+	model "paygo/domain/model"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -25,7 +25,7 @@ func ConnectDB(config *config.Config) {
 
 	log.Println("Database connection established")
 
-	err = DB.AutoMigrate(&models.User{}, &models.Wallet{}, &models.Transaction{}, &models.LedgerEntry{})
+	err = DB.AutoMigrate(&model.User{}, &model.Wallet{}, &model.Transaction{}, &model.LedgerEntry{}, &model.Account{})
 	if err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}

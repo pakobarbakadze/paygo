@@ -3,16 +3,15 @@ package model
 import (
 	"time"
 
-	"gorm.io/gorm"
+	"github.com/google/uuid"
 )
 
 type Wallet struct {
-	ID        uint           `json:"id" gorm:"primaryKey"`
-	UserID    uint           `json:"userId" gorm:"not null;index"`
-	User      User           `json:"-" gorm:"foreignKey:UserID"`
-	Balance   float64        `json:"balance" gorm:"default:0.00"`
-	Currency  string         `json:"currency" gorm:"size:3;default:USD"`
-	CreatedAt time.Time      `json:"createdAt"`
-	UpdatedAt time.Time      `json:"updatedAt"`
-	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
+	ID        uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	UserID    uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
+	User      User      `gorm:"foreignKey:UserID" json:"-"`
+	Balance   float64   `gorm:"type:numeric(19,4);not null;default:0" json:"balance"`
+	Currency  string    `gorm:"type:char(3);not null;default:USD" json:"currency"`
+	CreatedAt time.Time `gorm:"not null" json:"created_at"`
+	UpdatedAt time.Time `gorm:"not null" json:"updated_at"`
 }

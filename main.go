@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"paygo/api/route"
 	"paygo/config"
 	"paygo/infra/database"
 
@@ -30,6 +31,8 @@ func setupRouter() *gin.Engine {
 			"message": "pong",
 		})
 	})
+
+	route.SetupRoutes(r)
 
 	return r
 }
