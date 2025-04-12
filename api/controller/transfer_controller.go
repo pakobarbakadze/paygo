@@ -3,6 +3,7 @@ package controller
 import (
 	"net/http"
 	"paygo/api/dto"
+	"paygo/domain/repository"
 	"paygo/domain/service"
 	"paygo/infra/database"
 
@@ -14,7 +15,9 @@ type TransferController struct {
 }
 
 func NewTransferController() *TransferController {
-	transferService := service.NewTransferService(database.DB)
+	accountRepo := repository.NewAccountRepository(database.DB)
+	transactionRepo := repository.NewTransactionRepository(database.DB)
+	transferService := service.NewTransferService(database.DB, accountRepo, transactionRepo)
 
 	return &TransferController{
 		TransferService: transferService,
@@ -24,17 +27,37 @@ func NewTransferController() *TransferController {
 func (c *TransferController) TransferMoney(ctx *gin.Context) {
 	var request dto.TransferRequest
 
-	println("In transfer money controller")
-
 	if err := ctx.ShouldBindJSON(&request); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.TransferService.TransferMoney(
+	transaction, fromAccount, toAccount, err := c.TransferService.TransferMoney(
 		request.FromAccountID,
 		request.ToAccountID,
 		request.Amount,
 		request.Description,
 	)
+
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	response := dto.TransferResponse{
+		TransactionID:         transaction.ID,
+		TransactionReference:  transaction.TransactionReference,
+		Status:                transaction.Status,
+		Amount:                transaction.Amount,
+		CurrencyCode:          transaction.CurrencyCode,
+		FromAccountID:         fromAccount.ID,
+		ToAccountID:           toAccount.ID,
+		FromAccountNewBalance: fromAccount.Balance,
+		ToAccountNewBalance:   toAccount.Balance,
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Transfer successful",
+		"data":    response,
+	})
 }
