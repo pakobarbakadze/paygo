@@ -1,33 +1,82 @@
 package database
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"paygo/config"
-	model "paygo/domain/model"
+	"paygo/domain/model"
+	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
+type Database struct {
+	DB *gorm.DB
+}
 
-func ConnectDB(config *config.Config) {
-	var err error
+func NewDatabase(cfg *config.Config) (*Database, error) {
 	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		config.DBHost, config.DBPort, config.DBUser, config.DBPassword, config.DBName)
+		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
 
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	// Add connection timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	// Configure connection pool
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database connection: %w", err)
+	}
+
+	// Set connection pool parameters
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
+	// Do a ping to verify the connection is valid
+	if err := sqlDB.PingContext(ctx); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	log.Println("Database connection established")
 
-	err = DB.AutoMigrate(&model.User{}, &model.Wallet{}, &model.Transaction{}, &model.LedgerEntry{}, &model.Account{})
+	return &Database{DB: db}, nil
+}
+
+func Setup(cfg *config.Config) (*Database, error) {
+	db, err := NewDatabase(cfg)
 	if err != nil {
-		log.Fatalf("Failed to migrate database: %v", err)
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	if err := db.Migrate(); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("failed to migrate database: %w", err)
+	}
+
+	return db, nil
+}
+
+func (d *Database) Migrate() error {
+	err := d.DB.AutoMigrate(&model.User{}, &model.Wallet{}, &model.Transaction{}, &model.LedgerEntry{}, &model.Account{})
+	if err != nil {
+		return fmt.Errorf("failed to migrate database: %w", err)
 	}
 	log.Println("Database migration completed")
+	return nil
+}
+
+func (d *Database) Close() error {
+	sqlDB, err := d.DB.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+	return sqlDB.Close()
 }
