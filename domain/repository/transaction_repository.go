@@ -2,22 +2,21 @@ package repository
 
 import (
 	"paygo/domain/model"
-
-	"gorm.io/gorm"
+	"paygo/infra/database"
 )
 
 type TransactionRepository struct {
-	DB *gorm.DB
+	DB *database.Database
 }
 
-func NewTransactionRepository(db *gorm.DB) *TransactionRepository {
+func NewTransactionRepository(db *database.Database) *TransactionRepository {
 	return &TransactionRepository{DB: db}
 }
 
-func (r *TransactionRepository) Create(tx *gorm.DB, transaction *model.Transaction) error {
+func (r *TransactionRepository) Create(tx *database.Database, transaction *model.Transaction) error {
 	return tx.Create(transaction).Error
 }
 
-func (r *TransactionRepository) CreateLedgerEntry(tx *gorm.DB, entry *model.LedgerEntry) error {
+func (r *TransactionRepository) CreateLedgerEntry(tx *database.Database, entry *model.LedgerEntry) error {
 	return tx.Create(entry).Error
 }

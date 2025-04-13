@@ -2,21 +2,21 @@ package repository
 
 import (
 	"paygo/domain/model"
+	"paygo/infra/database"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 type AccountRepository struct {
-	DB *gorm.DB
+	DB *database.Database
 }
 
-func NewAccountRepository(db *gorm.DB) *AccountRepository {
+func NewAccountRepository(db *database.Database) *AccountRepository {
 	return &AccountRepository{DB: db}
 }
 
-func (r *AccountRepository) FindByID(tx *gorm.DB, id uuid.UUID, forUpdate bool) (*model.Account, error) {
+func (r *AccountRepository) FindByID(tx *database.Database, id uuid.UUID, forUpdate bool) (*model.Account, error) {
 	db := r.DB
 	if tx != nil {
 		db = tx
@@ -36,7 +36,7 @@ func (r *AccountRepository) FindByID(tx *gorm.DB, id uuid.UUID, forUpdate bool) 
 	return &account, nil
 }
 
-func (r *AccountRepository) Update(tx *gorm.DB, account *model.Account) (*model.Account, error) {
+func (r *AccountRepository) Update(tx *database.Database, account *model.Account) (*model.Account, error) {
 	db := r.DB
 	if tx != nil {
 		db = tx

@@ -8,7 +8,6 @@ import (
 	"paygo/infra/database"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 func main() {
@@ -20,7 +19,7 @@ func main() {
 	}
 	defer db.Close()
 
-	r := setupRouter(db.DB)
+	r := setupRouter(db)
 
 	log.Printf("Server starting on port %s...", cfg.ServerPort)
 	if err := r.Run(":" + cfg.ServerPort); err != nil {
@@ -28,7 +27,7 @@ func main() {
 	}
 }
 
-func setupRouter(db *gorm.DB) *gin.Engine {
+func setupRouter(db *database.Database) *gin.Engine {
 	r := gin.Default()
 
 	r.GET("/ping", func(c *gin.Context) {

@@ -1,11 +1,12 @@
 package route
 
 import (
+	"paygo/infra/database"
+
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
-func SetupRoutes(r *gin.Engine, db *gorm.DB) {
+func SetupRoutes(r *gin.Engine, db *database.Database) {
 	v1 := r.Group("/api/v1")
 
 	SetupTransferRoutes(v1, db)

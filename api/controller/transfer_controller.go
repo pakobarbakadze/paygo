@@ -5,16 +5,16 @@ import (
 	"paygo/api/dto"
 	"paygo/domain/repository"
 	"paygo/domain/service"
+	"paygo/infra/database"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type TransferController struct {
 	TransferService *service.TransferService
 }
 
-func NewTransferController(db *gorm.DB) *TransferController {
+func NewTransferController(db *database.Database) *TransferController {
 	accountRepo := repository.NewAccountRepository(db)
 	transactionRepo := repository.NewTransactionRepository(db)
 	transferService := service.NewTransferService(db, accountRepo, transactionRepo)

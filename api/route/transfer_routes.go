@@ -2,12 +2,12 @@ package route
 
 import (
 	"paygo/api/controller"
+	"paygo/infra/database"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
-func SetupTransferRoutes(router *gin.RouterGroup, db *gorm.DB) {
+func SetupTransferRoutes(router *gin.RouterGroup, db *database.Database) {
 	transferController := controller.NewTransferController(db)
 
 	transferRoutes := router.Group("/transfers")
