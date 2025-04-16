@@ -5,18 +5,18 @@ import (
 	"paygo/infra/database"
 )
 
-type TransactionRepository struct {
-	DB *database.Database
+type TransactionRepositoryImpl struct {
+	DB database.DBManager
 }
 
-func NewTransactionRepository(db *database.Database) *TransactionRepository {
-	return &TransactionRepository{DB: db}
+func NewTransactionRepository(db database.DBManager) TransactionRepository {
+	return &TransactionRepositoryImpl{DB: db}
 }
 
-func (r *TransactionRepository) Create(tx *database.Database, transaction *model.Transaction) error {
-	return tx.Create(transaction).Error
+func (r *TransactionRepositoryImpl) Create(tx database.Transaction, transaction *model.Transaction) error {
+	return tx.Create(transaction)
 }
 
-func (r *TransactionRepository) CreateLedgerEntry(tx *database.Database, entry *model.LedgerEntry) error {
-	return tx.Create(entry).Error
+func (r *TransactionRepositoryImpl) CreateLedgerEntry(tx database.Transaction, entry *model.LedgerEntry) error {
+	return tx.Create(entry)
 }

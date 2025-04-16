@@ -12,15 +12,15 @@ import (
 )
 
 type TransferService struct {
-	DB              *database.Database
-	AccountRepo     *repository.AccountRepository
-	TransactionRepo *repository.TransactionRepository
+	DB              database.DBManager
+	AccountRepo     repository.AccountRepository
+	TransactionRepo repository.TransactionRepository
 }
 
 func NewTransferService(
-	db *database.Database,
-	accountRepo *repository.AccountRepository,
-	transactionRepo *repository.TransactionRepository,
+	db database.DBManager,
+	accountRepo repository.AccountRepository,
+	transactionRepo repository.TransactionRepository,
 ) *TransferService {
 	return &TransferService{
 		DB:              db,
@@ -33,7 +33,7 @@ func (s *TransferService) TransferMoney(fromAccountID, toAccountID uuid.UUID, am
 	var fromAccount, toAccount *model.Account
 	var transaction model.Transaction
 
-	err := s.DB.WithTransaction(func(tx *database.Database) error {
+	err := s.DB.WithTransaction(func(tx database.Transaction) error {
 		var err error
 
 		if fromAccount, err = s.AccountRepo.FindByID(tx, fromAccountID, true); err != nil {

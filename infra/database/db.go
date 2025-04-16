@@ -10,10 +10,25 @@ import (
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type Database struct {
 	*gorm.DB
+}
+
+type Transaction interface {
+	Create(value interface{}) error
+	Save(value interface{}) error
+	Where(query interface{}, args ...interface{}) Transaction
+	First(dest interface{}) error
+	Clauses(clauses ...clause.Expression) Transaction
+	Error() error
+}
+
+type DBManager interface {
+	WithTransaction(fn func(tx Transaction) error) error
+	Close() error
 }
 
 func NewDatabase(cfg *config.Config) (*Database, error) {
@@ -64,7 +79,31 @@ func Setup(cfg *config.Config) (*Database, error) {
 	return db, nil
 }
 
-func (d *Database) WithTransaction(fn func(tx *Database) error) error {
+func (d *Database) Create(value interface{}) error {
+	return d.DB.Create(value).Error
+}
+
+func (d *Database) Save(value interface{}) error {
+	return d.DB.Save(value).Error
+}
+
+func (d *Database) Where(query interface{}, args ...interface{}) Transaction {
+	return &Database{DB: d.DB.Where(query, args...)}
+}
+
+func (d *Database) First(dest interface{}) error {
+	return d.DB.First(dest).Error
+}
+
+func (d *Database) Clauses(expressions ...clause.Expression) Transaction {
+	return &Database{DB: d.DB.Clauses(expressions...)}
+}
+
+func (d *Database) Error() error {
+	return d.DB.Error
+}
+
+func (d *Database) WithTransaction(fn func(tx Transaction) error) error {
 	gormTx := d.DB.Begin()
 	if gormTx.Error != nil {
 		return fmt.Errorf("failed to begin transaction: %w", gormTx.Error)

@@ -14,7 +14,7 @@ type TransferController struct {
 	TransferService *service.TransferService
 }
 
-func NewTransferController(db *database.Database) *TransferController {
+func NewTransferController(db database.DBManager) *TransferController {
 	accountRepo := repository.NewAccountRepository(db)
 	transactionRepo := repository.NewTransactionRepository(db)
 	transferService := service.NewTransferService(db, accountRepo, transactionRepo)

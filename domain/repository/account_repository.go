@@ -8,41 +8,31 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type AccountRepository struct {
-	DB *database.Database
+type AccountRepositoryImpl struct {
+	DB database.DBManager
 }
 
-func NewAccountRepository(db *database.Database) *AccountRepository {
-	return &AccountRepository{DB: db}
+func NewAccountRepository(db database.DBManager) AccountRepository {
+	return &AccountRepositoryImpl{DB: db}
 }
 
-func (r *AccountRepository) FindByID(tx *database.Database, id uuid.UUID, forUpdate bool) (*model.Account, error) {
-	db := r.DB
-	if tx != nil {
-		db = tx
-	}
-
+func (r *AccountRepositoryImpl) FindByID(tx database.Transaction, id uuid.UUID, forUpdate bool) (*model.Account, error) {
 	var account model.Account
-	query := db.Where("id = ?", id)
+	query := tx.Where("id = ?", id)
 
 	if forUpdate {
 		query = query.Clauses(clause.Locking{Strength: "UPDATE"})
 	}
 
-	if err := query.First(&account).Error; err != nil {
+	if err := query.First(&account); err != nil {
 		return nil, err
 	}
 
 	return &account, nil
 }
 
-func (r *AccountRepository) Update(tx *database.Database, account *model.Account) (*model.Account, error) {
-	db := r.DB
-	if tx != nil {
-		db = tx
-	}
-
-	if err := db.Save(account).Error; err != nil {
+func (r *AccountRepositoryImpl) Update(tx database.Transaction, account *model.Account) (*model.Account, error) {
+	if err := tx.Save(account); err != nil {
 		return nil, err
 	}
 	return account, nil
