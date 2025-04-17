@@ -4,23 +4,32 @@ import (
 	"errors"
 	"fmt"
 	"paygo/domain/model"
-	"paygo/domain/repository"
 	"paygo/infra/database"
 	"time"
 
 	"github.com/google/uuid"
 )
 
+type accountRepository interface {
+	FindByID(tx database.Transaction, id uuid.UUID, forUpdate bool) (*model.Account, error)
+	Update(tx database.Transaction, account *model.Account) (*model.Account, error)
+}
+
+type transactionRepository interface {
+	Create(tx database.Transaction, transaction *model.Transaction) error
+	CreateLedgerEntry(tx database.Transaction, entry *model.LedgerEntry) error
+}
+
 type TransferService struct {
 	DB              database.DBManager
-	AccountRepo     repository.AccountRepository
-	TransactionRepo repository.TransactionRepository
+	AccountRepo     accountRepository
+	TransactionRepo transactionRepository
 }
 
 func NewTransferService(
 	db database.DBManager,
-	accountRepo repository.AccountRepository,
-	transactionRepo repository.TransactionRepository,
+	accountRepo accountRepository,
+	transactionRepo transactionRepository,
 ) *TransferService {
 	return &TransferService{
 		DB:              db,

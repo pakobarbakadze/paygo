@@ -8,15 +8,15 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type AccountRepositoryImpl struct {
+type AccountRepository struct {
 	DB database.DBManager
 }
 
-func NewAccountRepository(db database.DBManager) AccountRepository {
-	return &AccountRepositoryImpl{DB: db}
+func NewAccountRepository(db database.DBManager) *AccountRepository {
+	return &AccountRepository{DB: db}
 }
 
-func (r *AccountRepositoryImpl) FindByID(tx database.Transaction, id uuid.UUID, forUpdate bool) (*model.Account, error) {
+func (r *AccountRepository) FindByID(tx database.Transaction, id uuid.UUID, forUpdate bool) (*model.Account, error) {
 	var account model.Account
 	query := tx.Where("id = ?", id)
 
@@ -31,7 +31,7 @@ func (r *AccountRepositoryImpl) FindByID(tx database.Transaction, id uuid.UUID, 
 	return &account, nil
 }
 
-func (r *AccountRepositoryImpl) Update(tx database.Transaction, account *model.Account) (*model.Account, error) {
+func (r *AccountRepository) Update(tx database.Transaction, account *model.Account) (*model.Account, error) {
 	if err := tx.Save(account); err != nil {
 		return nil, err
 	}
