@@ -1,7 +1,7 @@
 package route
 
 import (
-	"paygo/infra/database"
+	"paygo/internal/infra/database"
 
 	"github.com/gin-gonic/gin"
 )

@@ -2,9 +2,9 @@ package service_test
 
 import (
 	"errors"
-	"paygo/domain/model"
-	"paygo/domain/service"
-	"paygo/infra/database"
+	"paygo/internal/domain/model"
+	"paygo/internal/domain/service"
+	"paygo/internal/infra/database"
 	"testing"
 
 	"github.com/google/uuid"

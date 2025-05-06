@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"paygo/config"
+	"paygo/internal/config"
 	"time"
 
 	"gorm.io/driver/postgres"

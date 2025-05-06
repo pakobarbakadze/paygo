@@ -2,10 +2,10 @@ package controller
 
 import (
 	"net/http"
-	"paygo/api/dto"
-	"paygo/domain/repository"
-	"paygo/domain/service"
-	"paygo/infra/database"
+	"paygo/internal/api/dto"
+	"paygo/internal/domain/repository"
+	"paygo/internal/domain/service"
+	"paygo/internal/infra/database"
 
 	"github.com/gin-gonic/gin"
 )

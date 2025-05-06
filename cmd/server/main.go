@@ -2,10 +2,9 @@ package main
 
 import (
 	"log"
-
-	"paygo/api/route"
-	"paygo/config"
-	"paygo/infra/database"
+	"paygo/internal/api/route"
+	"paygo/internal/config"
+	"paygo/internal/infra/database"
 
 	"github.com/gin-gonic/gin"
 )

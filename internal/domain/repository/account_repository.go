@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"paygo/domain/model"
-	"paygo/infra/database"
+	"paygo/internal/domain/model"
+	"paygo/internal/infra/database"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm/clause"

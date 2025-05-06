@@ -3,7 +3,7 @@ package database
 import (
 	"fmt"
 	"log"
-	"paygo/domain/model"
+	"paygo/internal/domain/model"
 )
 
 func (d *Database) Migrate() error {
