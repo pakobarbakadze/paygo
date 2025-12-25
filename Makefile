@@ -1,4 +1,4 @@
-.PHONY: swagger run build test clean dev
+.PHONY: swagger run build test clean dev seed
 
 # Generate swagger documentation
 swagger:
@@ -21,6 +21,10 @@ build:
 # Run tests
 test:
 	@go test -v ./...
+
+# Seed the database with test data
+seed:
+	@go run ./cmd/seed/main.go
 
 # Clean build artifacts
 clean:
