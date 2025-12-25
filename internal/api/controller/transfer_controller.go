@@ -24,6 +24,16 @@ func NewTransferController(db database.DBManager) *TransferController {
 	}
 }
 
+// TransferMoney godoc
+// @Summary Transfer money between accounts
+// @Description Transfer money from one account to another
+// @Tags transfers
+// @Accept json
+// @Produce json
+// @Param transfer body dto.TransferRequest true "Transfer details"
+// @Success 200 {object} map[string]interface{} "Transfer successful"
+// @Failure 400 {object} map[string]interface{} "Bad request"
+// @Router /transfers [post]
 func (c *TransferController) TransferMoney(ctx *gin.Context) {
 	var request dto.TransferRequest
 

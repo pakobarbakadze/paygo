@@ -7,8 +7,26 @@ import (
 	"paygo/internal/infra/database"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
+	_ "paygo/cmd/server/docs"
 )
 
+// @title PayGo API
+// @version 1.0
+// @description Payment and money transfer API
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.email support@paygo.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8080
+// @BasePath /api/v1
+// @schemes http https
 func main() {
 	cfg := config.LoadConfig()
 
@@ -29,11 +47,8 @@ func main() {
 func setupRouter(db *database.Database) *gin.Engine {
 	r := gin.Default()
 
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
+	// Swagger documentation
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	route.SetupRoutes(r, db)
 

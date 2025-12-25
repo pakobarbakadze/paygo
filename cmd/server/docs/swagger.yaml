@@ -1,0 +1,77 @@
+basePath: /api/v1
+definitions:
+  paygo_internal_api_dto.TransferRequest:
+    properties:
+      amount:
+        type: number
+      description:
+        type: string
+      from_account_id:
+        type: string
+      to_account_id:
+        type: string
+    required:
+    - amount
+    - from_account_id
+    - to_account_id
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@paygo.com
+    name: API Support
+  description: Payment and money transfer API
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: PayGo API
+  version: "1.0"
+paths:
+  /ping:
+    get:
+      description: Returns pong to verify the server is running
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check endpoint
+      tags:
+      - health
+  /transfers:
+    post:
+      consumes:
+      - application/json
+      description: Transfer money from one account to another
+      parameters:
+      - description: Transfer details
+        in: body
+        name: transfer
+        required: true
+        schema:
+          $ref: '#/definitions/paygo_internal_api_dto.TransferRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Transfer successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Transfer money between accounts
+      tags:
+      - transfers
+schemes:
+- http
+- https
+swagger: "2.0"
