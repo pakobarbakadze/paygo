@@ -9,6 +9,8 @@ import (
 
 	"database/sql"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -32,7 +34,7 @@ func NewDatabase(cfg *config.Config, opts ...Option) (*Database, error) {
 		ctx, cancel := context.WithTimeout(context.Background(), options.timeout)
 		defer cancel()
 
-		sqlDB, err := sql.Open("postgres", dsn)
+		sqlDB, err := sql.Open("pgx", dsn)
 		if err != nil {
 			if attempt < options.maxRetries {
 				log.Printf("Failed to open database (attempt %d/%d): %v. Retrying in %v...",
@@ -59,7 +61,8 @@ func NewDatabase(cfg *config.Config, opts ...Option) (*Database, error) {
 		sqlDB.SetConnMaxLifetime(options.connMaxLifetime)
 
 		db, err = gorm.Open(postgres.New(postgres.Config{
-			Conn: sqlDB,
+			Conn:                 sqlDB,
+			PreferSimpleProtocol: true,
 		}), &gorm.Config{})
 		if err != nil {
 			sqlDB.Close()
