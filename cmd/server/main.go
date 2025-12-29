@@ -30,7 +30,7 @@ import (
 func main() {
 	cfg := config.LoadConfig()
 
-	db, err := database.Setup(&cfg)
+	db, err := database.Setup(&cfg, database.WithMaxRetries(5))
 	if err != nil {
 		log.Fatalf("Database setup failed: %v", err)
 	}
