@@ -11,4 +11,5 @@ func SetupRoutes(r *gin.Engine, db *database.Database) {
 
 	SetupTransferRoutes(v1, db)
 	SetupHealthRoutes(v1)
+	SetupAuditRoutes(v1, db)
 }

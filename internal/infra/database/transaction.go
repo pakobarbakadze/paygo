@@ -18,8 +18,16 @@ func (d *Database) Where(query any, args ...any) Transaction {
 	return &Database{DB: d.DB.Where(query, args...)}
 }
 
+func (d *Database) Preload(query string, args ...any) Transaction {
+	return &Database{DB: d.DB.Preload(query, args...)}
+}
+
 func (d *Database) First(dest any) error {
 	return d.DB.First(dest).Error
+}
+
+func (d *Database) Find(dest any) error {
+	return d.DB.Find(dest).Error
 }
 
 func (d *Database) Clauses(expressions ...clause.Expression) Transaction {

@@ -15,6 +15,55 @@ definitions:
     - from_account_id
     - to_account_id
     type: object
+  paygo_internal_domain_service.AuditResult:
+    properties:
+      account_id:
+        type: string
+      account_number:
+        type: string
+      actual_balance:
+        type: number
+      audited_at:
+        type: string
+      balance_discrepancy:
+        type: number
+      details:
+        items:
+          type: string
+        type: array
+      expected_balance:
+        type: number
+      fraud_types:
+        items:
+          $ref: '#/definitions/paygo_internal_domain_service.FraudType'
+        type: array
+      ledger_entries_count:
+        type: integer
+      status:
+        $ref: '#/definitions/paygo_internal_domain_service.AuditStatus'
+      transaction_count:
+        type: integer
+    type: object
+  paygo_internal_domain_service.AuditStatus:
+    enum:
+    - VALID
+    - FRAUDULENT
+    - INCOMPLETE
+    type: string
+    x-enum-varnames:
+    - AuditStatusValid
+    - AuditStatusFraudulent
+    - AuditStatusIncomplete
+  paygo_internal_domain_service.FraudType:
+    enum:
+    - BALANCE_MISMATCH
+    - MISSING_LEDGER_ENTRY
+    - ORPHANED_LEDGER_ENTRY
+    type: string
+    x-enum-varnames:
+    - FraudTypeBalanceMismatch
+    - FraudTypeMissingLedgerEntry
+    - FraudTypeOrphanedLedgerEntry
 host: localhost:8080
 info:
   contact:
@@ -28,6 +77,33 @@ info:
   title: PayGo API
   version: "1.0"
 paths:
+  /audit/accounts/{accountId}:
+    get:
+      consumes:
+      - application/json
+      description: Audit an account to detect fraud by comparing ledger entries with
+        transaction history
+      parameters:
+      - description: Account ID
+        in: path
+        name: accountId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Audit result
+          schema:
+            $ref: '#/definitions/paygo_internal_domain_service.AuditResult'
+        "400":
+          description: Invalid account ID
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Audit a specific account
+      tags:
+      - audit
   /ping:
     get:
       description: Returns pong to verify the server is running

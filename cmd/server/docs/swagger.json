@@ -21,6 +21,45 @@
     "host": "localhost:8080",
     "basePath": "/api/v1",
     "paths": {
+        "/audit/accounts/{accountId}": {
+            "get": {
+                "description": "Audit an account to detect fraud by comparing ledger entries with transaction history",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "audit"
+                ],
+                "summary": "Audit a specific account",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Account ID",
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Audit result",
+                        "schema": {
+                            "$ref": "#/definitions/paygo_internal_domain_service.AuditResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid account ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/ping": {
             "get": {
                 "description": "Returns pong to verify the server is running",
@@ -109,6 +148,76 @@
                     "type": "string"
                 }
             }
+        },
+        "paygo_internal_domain_service.AuditResult": {
+            "type": "object",
+            "properties": {
+                "account_id": {
+                    "type": "string"
+                },
+                "account_number": {
+                    "type": "string"
+                },
+                "actual_balance": {
+                    "type": "number"
+                },
+                "audited_at": {
+                    "type": "string"
+                },
+                "balance_discrepancy": {
+                    "type": "number"
+                },
+                "details": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "expected_balance": {
+                    "type": "number"
+                },
+                "fraud_types": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/paygo_internal_domain_service.FraudType"
+                    }
+                },
+                "ledger_entries_count": {
+                    "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/paygo_internal_domain_service.AuditStatus"
+                },
+                "transaction_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "paygo_internal_domain_service.AuditStatus": {
+            "type": "string",
+            "enum": [
+                "VALID",
+                "FRAUDULENT",
+                "INCOMPLETE"
+            ],
+            "x-enum-varnames": [
+                "AuditStatusValid",
+                "AuditStatusFraudulent",
+                "AuditStatusIncomplete"
+            ]
+        },
+        "paygo_internal_domain_service.FraudType": {
+            "type": "string",
+            "enum": [
+                "BALANCE_MISMATCH",
+                "MISSING_LEDGER_ENTRY",
+                "ORPHANED_LEDGER_ENTRY"
+            ],
+            "x-enum-varnames": [
+                "FraudTypeBalanceMismatch",
+                "FraudTypeMissingLedgerEntry",
+                "FraudTypeOrphanedLedgerEntry"
+            ]
         }
     }
 }

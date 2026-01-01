@@ -10,13 +10,17 @@ import (
 
 // Make It Idempotent (run multiple times safely)
 
+func timePtr(t time.Time) *time.Time {
+	return &t
+}
+
 func (d *Database) Seed() error {
 	log.Println("Starting database seeding...")
 
 	// Create test users
 	users := []model.User{
 		{
-			ID:           uuid.MustParse("11111111-1111-1111-1111-111111111111"),
+			ID:           uuid.New(),
 			Email:        "alice@example.com",
 			PasswordHash: "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy", // password: "password123"
 			FirstName:    "Alice",
@@ -27,7 +31,7 @@ func (d *Database) Seed() error {
 			UpdatedAt:    time.Now(),
 		},
 		{
-			ID:           uuid.MustParse("22222222-2222-2222-2222-222222222222"),
+			ID:           uuid.New(),
 			Email:        "bob@example.com",
 			PasswordHash: "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy", // password: "password123"
 			FirstName:    "Bob",
@@ -50,7 +54,7 @@ func (d *Database) Seed() error {
 	// Create test accounts (minimum needed for transfer testing)
 	accounts := []model.Account{
 		{
-			ID:               uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+			ID:               uuid.New(),
 			UserID:           users[0].ID,
 			AccountNumber:    "ACC-1000001",
 			AccountType:      "checking",
@@ -62,7 +66,7 @@ func (d *Database) Seed() error {
 			UpdatedAt:        time.Now(),
 		},
 		{
-			ID:               uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+			ID:               uuid.New(),
 			UserID:           users[1].ID,
 			AccountNumber:    "ACC-2000001",
 			AccountType:      "checking",
@@ -80,8 +84,73 @@ func (d *Database) Seed() error {
 			log.Printf("Failed to create account %s: %v", account.AccountNumber, err)
 			return err
 		}
-		log.Printf("Created account: %s (Balance: %.2f %s)", 
+		log.Printf("Created account: %s (Balance: %.2f %s)",
 			account.AccountNumber, account.Balance, account.CurrencyCode)
+	}
+
+	// Create initial transactions and ledger entries for account balances
+	transactions := []model.Transaction{
+		{
+			ID:                   uuid.New(),
+			TransactionReference: "INIT-DEP-001",
+			TransactionType:      "deposit",
+			Status:               "completed",
+			Amount:               1000.00,
+			CurrencyCode:         "USD",
+			Description:          "Initial deposit",
+			CreatedAt:            time.Now(),
+			UpdatedAt:            time.Now(),
+		},
+		{
+			ID:                   uuid.New(),
+			TransactionReference: "INIT-DEP-002",
+			TransactionType:      "deposit",
+			Status:               "completed",
+			Amount:               500.00,
+			CurrencyCode:         "USD",
+			Description:          "Initial deposit",
+			CreatedAt:            time.Now(),
+			UpdatedAt:            time.Now(),
+		},
+	}
+
+	for _, txn := range transactions {
+		if err := d.DB.Create(&txn).Error; err != nil {
+			log.Printf("Failed to create transaction %s: %v", txn.ID, err)
+			return err
+		}
+		log.Printf("Created initial transaction: %s (%.2f %s)", txn.ID, txn.Amount, txn.CurrencyCode)
+	}
+
+	// Create ledger entries for the initial deposits
+	ledgerEntries := []model.LedgerEntry{
+		{
+			ID:             uuid.New(),
+			TransactionID:  transactions[0].ID,
+			AccountID:      accounts[0].ID,
+			EntryType:      "credit",
+			Amount:         1000.00,
+			RunningBalance: 1000.00,
+			CreatedAt:      time.Now(),
+		},
+		{
+			ID:             uuid.New(),
+			TransactionID:  transactions[1].ID,
+			AccountID:      accounts[1].ID,
+			EntryType:      "credit",
+			Amount:         500.00,
+			RunningBalance: 500.00,
+			CreatedAt:      time.Now(),
+		},
+	}
+
+	for _, entry := range ledgerEntries {
+		if err := d.DB.Create(&entry).Error; err != nil {
+			log.Printf("Failed to create ledger entry %s: %v", entry.ID, err)
+			return err
+		}
+		log.Printf("Created ledger entry: %s (%s %.2f)",
+			entry.AccountID, entry.EntryType, entry.Amount)
 	}
 
 	log.Println("\nDatabase seeding completed successfully!")
