@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// TODO: Which is better to use concreted types or interfaces for repos and db manager?
 type TransferService struct {
 	DB              database.DBManager
 	AccountRepo     *repository.AccountRepository
