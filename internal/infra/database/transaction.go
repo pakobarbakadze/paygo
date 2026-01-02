@@ -14,11 +14,11 @@ func (d *Database) Save(value any) error {
 	return d.DB.Save(value).Error
 }
 
-func (d *Database) Where(query any, args ...any) Transaction {
+func (d *Database) Where(query any, args ...any) DB {
 	return &Database{DB: d.DB.Where(query, args...)}
 }
 
-func (d *Database) Preload(query string, args ...any) Transaction {
+func (d *Database) Preload(query string, args ...any) DB {
 	return &Database{DB: d.DB.Preload(query, args...)}
 }
 
@@ -30,7 +30,7 @@ func (d *Database) Find(dest any) error {
 	return d.DB.Find(dest).Error
 }
 
-func (d *Database) Clauses(expressions ...clause.Expression) Transaction {
+func (d *Database) Clauses(expressions ...clause.Expression) DB {
 	return &Database{DB: d.DB.Clauses(expressions...)}
 }
 
@@ -38,7 +38,7 @@ func (d *Database) Error() error {
 	return d.DB.Error
 }
 
-func (d *Database) WithTransaction(fn func(tx Transaction) error) error {
+func (d *Database) WithTransaction(fn func(tx DB) error) error {
 	gormTx := d.DB.Begin()
 	if gormTx.Error != nil {
 		return fmt.Errorf("failed to begin transaction: %w", gormTx.Error)

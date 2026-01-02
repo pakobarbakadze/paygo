@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"gorm.io/gorm/clause"
 )
 
 // Mocks
@@ -17,12 +18,51 @@ type MockDBManager struct {
 	mock.Mock
 }
 
-func (m *MockDBManager) WithTransaction(fn func(tx database.Transaction) error) error {
+func (m *MockDBManager) WithTransaction(fn func(tx database.DB) error) error {
 	args := m.Called(fn)
-	// Execute the function with nil as transaction to simulate the transaction
 	if fn != nil {
 		_ = fn(nil)
 	}
+	return args.Error(0)
+}
+
+func (m *MockDBManager) Create(value any) error {
+	args := m.Called(value)
+	return args.Error(0)
+}
+
+func (m *MockDBManager) Save(value any) error {
+	args := m.Called(value)
+	return args.Error(0)
+}
+
+func (m *MockDBManager) Where(query any, args ...any) database.DB {
+	m.Called(query, args)
+	return m
+}
+
+func (m *MockDBManager) Preload(query string, args ...any) database.DB {
+	m.Called(query, args)
+	return m
+}
+
+func (m *MockDBManager) First(dest any) error {
+	args := m.Called(dest)
+	return args.Error(0)
+}
+
+func (m *MockDBManager) Find(dest any) error {
+	args := m.Called(dest)
+	return args.Error(0)
+}
+
+func (m *MockDBManager) Clauses(clauses ...clause.Expression) database.DB {
+	m.Called(clauses)
+	return m
+}
+
+func (m *MockDBManager) Error() error {
+	args := m.Called()
 	return args.Error(0)
 }
 
@@ -40,16 +80,20 @@ type MockAccountRepository struct {
 	mock.Mock
 }
 
-func (m *MockAccountRepository) FindByID(tx database.Transaction, id uuid.UUID, forUpdate bool) (*model.Account, error) {
-	args := m.Called(tx, id, forUpdate)
+func (m *MockAccountRepository) WithTx(tx database.DB) service.AccountRepository {
+	return m
+}
+
+func (m *MockAccountRepository) FindByID(id uuid.UUID, forUpdate bool) (*model.Account, error) {
+	args := m.Called(id, forUpdate)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*model.Account), args.Error(1)
 }
 
-func (m *MockAccountRepository) Update(tx database.Transaction, account *model.Account) (*model.Account, error) {
-	args := m.Called(tx, account)
+func (m *MockAccountRepository) Update(account *model.Account) (*model.Account, error) {
+	args := m.Called(account)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -60,17 +104,20 @@ type MockTransactionRepository struct {
 	mock.Mock
 }
 
-func (m *MockTransactionRepository) Create(tx database.Transaction, transaction *model.Transaction) error {
-	args := m.Called(tx, transaction)
-	// Set ID for transaction because normally the DB would do this
+func (m *MockTransactionRepository) WithTx(tx database.DB) service.TransactionRepository {
+	return m
+}
+
+func (m *MockTransactionRepository) Create(transaction *model.Transaction) error {
+	args := m.Called(transaction)
 	if args.Error(0) == nil {
 		transaction.ID = uuid.New()
 	}
 	return args.Error(0)
 }
 
-func (m *MockTransactionRepository) CreateLedgerEntry(tx database.Transaction, entry *model.LedgerEntry) error {
-	args := m.Called(tx, entry)
+func (m *MockTransactionRepository) CreateLedgerEntry(entry *model.LedgerEntry) error {
+	args := m.Called(entry)
 	return args.Error(0)
 }
 
@@ -110,17 +157,17 @@ func TestTransferServiceTransferMoneySuccess(t *testing.T) {
 	}
 
 	// Expectations
-	mockAccountRepo.On("FindByID", mock.Anything, fromAccountID, true).Return(fromAccount, nil)
-	mockAccountRepo.On("FindByID", mock.Anything, toAccountID, true).Return(toAccount, nil)
-	mockTransactionRepo.On("Create", mock.Anything, mock.AnythingOfType("*model.Transaction")).Return(nil)
-	mockTransactionRepo.On("CreateLedgerEntry", mock.Anything, mock.AnythingOfType("*model.LedgerEntry")).Return(nil).Twice()
-	mockAccountRepo.On("Update", mock.Anything, mock.MatchedBy(func(account *model.Account) bool {
+	mockAccountRepo.On("FindByID", fromAccountID, true).Return(fromAccount, nil)
+	mockAccountRepo.On("FindByID", toAccountID, true).Return(toAccount, nil)
+	mockTransactionRepo.On("Create", mock.AnythingOfType("*model.Transaction")).Return(nil)
+	mockTransactionRepo.On("CreateLedgerEntry", mock.AnythingOfType("*model.LedgerEntry")).Return(nil).Twice()
+	mockAccountRepo.On("Update", mock.MatchedBy(func(account *model.Account) bool {
 		return account.ID == fromAccountID
 	})).Return(fromAccount, nil)
-	mockAccountRepo.On("Update", mock.Anything, mock.MatchedBy(func(account *model.Account) bool {
+	mockAccountRepo.On("Update", mock.MatchedBy(func(account *model.Account) bool {
 		return account.ID == toAccountID
 	})).Return(toAccount, nil)
-	mockDB.On("WithTransaction", mock.AnythingOfType("func(database.Transaction) error")).Return(nil)
+	mockDB.On("WithTransaction", mock.AnythingOfType("func(database.DB) error")).Return(nil)
 
 	// Execute
 	transaction, updatedFromAccount, updatedToAccount, err := transferService.TransferMoney(fromAccountID, toAccountID, amount, description)
@@ -158,8 +205,8 @@ func TestTransferServiceTransferMoneySourceAccountNotFound(t *testing.T) {
 	expectedErr := errors.New("account not found")
 
 	// Expectations
-	mockAccountRepo.On("FindByID", mock.Anything, fromAccountID, true).Return(nil, expectedErr)
-	mockDB.On("WithTransaction", mock.AnythingOfType("func(database.Transaction) error")).Return(expectedErr)
+	mockAccountRepo.On("FindByID", fromAccountID, true).Return(nil, expectedErr)
+	mockDB.On("WithTransaction", mock.AnythingOfType("func(database.DB) error")).Return(expectedErr)
 
 	// Execute
 	transaction, fromAccount, toAccount, err := transferService.TransferMoney(fromAccountID, toAccountID, amount, description)
@@ -197,9 +244,9 @@ func TestTransferServiceTransferMoneyDestinationAccountNotFound(t *testing.T) {
 	expectedErr := errors.New("account not found")
 
 	// Expectations
-	mockAccountRepo.On("FindByID", mock.Anything, fromAccountID, true).Return(fromAccount, nil)
-	mockAccountRepo.On("FindByID", mock.Anything, toAccountID, true).Return(nil, expectedErr)
-	mockDB.On("WithTransaction", mock.AnythingOfType("func(database.Transaction) error")).Return(expectedErr)
+	mockAccountRepo.On("FindByID", fromAccountID, true).Return(fromAccount, nil)
+	mockAccountRepo.On("FindByID", toAccountID, true).Return(nil, expectedErr)
+	mockDB.On("WithTransaction", mock.AnythingOfType("func(database.DB) error")).Return(expectedErr)
 
 	// Execute
 	transaction, fromAccount, toAccount, err := transferService.TransferMoney(fromAccountID, toAccountID, amount, description)
@@ -245,9 +292,9 @@ func TestTransferServiceTransferMoneySourceAccountNotActive(t *testing.T) {
 	expectedErr := errors.New("source account is not active")
 
 	// Expectations
-	mockAccountRepo.On("FindByID", mock.Anything, fromAccountID, true).Return(fromAccount, nil)
-	mockAccountRepo.On("FindByID", mock.Anything, toAccountID, true).Return(toAccount, nil)
-	mockDB.On("WithTransaction", mock.AnythingOfType("func(database.Transaction) error")).Return(expectedErr)
+	mockAccountRepo.On("FindByID", fromAccountID, true).Return(fromAccount, nil)
+	mockAccountRepo.On("FindByID", toAccountID, true).Return(toAccount, nil)
+	mockDB.On("WithTransaction", mock.AnythingOfType("func(database.DB) error")).Return(expectedErr)
 
 	// Execute
 	transaction, fromAccount, toAccount, err := transferService.TransferMoney(fromAccountID, toAccountID, amount, description)
@@ -293,9 +340,9 @@ func TestTransferServiceTransferMoneyDestinationAccountNotActive(t *testing.T) {
 	expectedErr := errors.New("destination account is not active")
 
 	// Expectations
-	mockAccountRepo.On("FindByID", mock.Anything, fromAccountID, true).Return(fromAccount, nil)
-	mockAccountRepo.On("FindByID", mock.Anything, toAccountID, true).Return(toAccount, nil)
-	mockDB.On("WithTransaction", mock.AnythingOfType("func(database.Transaction) error")).Return(expectedErr)
+	mockAccountRepo.On("FindByID", fromAccountID, true).Return(fromAccount, nil)
+	mockAccountRepo.On("FindByID", toAccountID, true).Return(toAccount, nil)
+	mockDB.On("WithTransaction", mock.AnythingOfType("func(database.DB) error")).Return(expectedErr)
 
 	// Execute
 	transaction, fromAccount, toAccount, err := transferService.TransferMoney(fromAccountID, toAccountID, amount, description)
@@ -341,9 +388,9 @@ func TestTransferServiceTransferMoneyCurrencyMismatch(t *testing.T) {
 	expectedErr := errors.New("currency mismatch between accounts")
 
 	// Expectations
-	mockAccountRepo.On("FindByID", mock.Anything, fromAccountID, true).Return(fromAccount, nil)
-	mockAccountRepo.On("FindByID", mock.Anything, toAccountID, true).Return(toAccount, nil)
-	mockDB.On("WithTransaction", mock.AnythingOfType("func(database.Transaction) error")).Return(expectedErr)
+	mockAccountRepo.On("FindByID", fromAccountID, true).Return(fromAccount, nil)
+	mockAccountRepo.On("FindByID", toAccountID, true).Return(toAccount, nil)
+	mockDB.On("WithTransaction", mock.AnythingOfType("func(database.DB) error")).Return(expectedErr)
 
 	// Execute
 	transaction, fromAccount, toAccount, err := transferService.TransferMoney(fromAccountID, toAccountID, amount, description)
@@ -389,9 +436,9 @@ func TestTransferServiceTransferMoneyInsufficientFunds(t *testing.T) {
 	expectedErr := errors.New("insufficient funds")
 
 	// Expectations
-	mockAccountRepo.On("FindByID", mock.Anything, fromAccountID, true).Return(fromAccount, nil)
-	mockAccountRepo.On("FindByID", mock.Anything, toAccountID, true).Return(toAccount, nil)
-	mockDB.On("WithTransaction", mock.AnythingOfType("func(database.Transaction) error")).Return(expectedErr)
+	mockAccountRepo.On("FindByID", fromAccountID, true).Return(fromAccount, nil)
+	mockAccountRepo.On("FindByID", toAccountID, true).Return(toAccount, nil)
+	mockDB.On("WithTransaction", mock.AnythingOfType("func(database.DB) error")).Return(expectedErr)
 
 	// Execute
 	transaction, fromAccount, toAccount, err := transferService.TransferMoney(fromAccountID, toAccountID, amount, description)
@@ -437,10 +484,10 @@ func TestTransferServiceTransferMoneyTransactionCreationFailed(t *testing.T) {
 	expectedErr := errors.New("failed to create transaction")
 
 	// Expectations
-	mockAccountRepo.On("FindByID", mock.Anything, fromAccountID, true).Return(fromAccount, nil)
-	mockAccountRepo.On("FindByID", mock.Anything, toAccountID, true).Return(toAccount, nil)
-	mockTransactionRepo.On("Create", mock.Anything, mock.AnythingOfType("*model.Transaction")).Return(expectedErr)
-	mockDB.On("WithTransaction", mock.AnythingOfType("func(database.Transaction) error")).Return(expectedErr)
+	mockAccountRepo.On("FindByID", fromAccountID, true).Return(fromAccount, nil)
+	mockAccountRepo.On("FindByID", toAccountID, true).Return(toAccount, nil)
+	mockTransactionRepo.On("Create", mock.AnythingOfType("*model.Transaction")).Return(expectedErr)
+	mockDB.On("WithTransaction", mock.AnythingOfType("func(database.DB) error")).Return(expectedErr)
 
 	// Execute
 	transaction, fromAccount, toAccount, err := transferService.TransferMoney(fromAccountID, toAccountID, amount, description)

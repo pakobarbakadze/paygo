@@ -6,17 +6,21 @@ import (
 )
 
 type TransactionRepository struct {
-	DB database.DBManager
+	db database.DB
 }
 
 func NewTransactionRepository(db database.DBManager) *TransactionRepository {
-	return &TransactionRepository{DB: db}
+	return &TransactionRepository{db: db}
 }
 
-func (r *TransactionRepository) Create(tx database.Transaction, transaction *model.Transaction) error {
-	return tx.Create(transaction)
+func (r *TransactionRepository) WithTx(tx database.DB) *TransactionRepository {
+	return &TransactionRepository{db: tx}
 }
 
-func (r *TransactionRepository) CreateLedgerEntry(tx database.Transaction, entry *model.LedgerEntry) error {
-	return tx.Create(entry)
+func (r *TransactionRepository) Create(transaction *model.Transaction) error {
+	return r.db.Create(transaction)
+}
+
+func (r *TransactionRepository) CreateLedgerEntry(entry *model.LedgerEntry) error {
+	return r.db.Create(entry)
 }

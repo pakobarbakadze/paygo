@@ -4,32 +4,24 @@ import (
 	"errors"
 	"fmt"
 	"paygo/internal/domain/model"
+	"paygo/internal/domain/repository"
 	"paygo/internal/infra/database"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-type accountRepository interface {
-	FindByID(tx database.Transaction, id uuid.UUID, forUpdate bool) (*model.Account, error)
-	Update(tx database.Transaction, account *model.Account) (*model.Account, error)
-}
-
-type transactionRepository interface {
-	Create(tx database.Transaction, transaction *model.Transaction) error
-	CreateLedgerEntry(tx database.Transaction, entry *model.LedgerEntry) error
-}
-
+// TODO: Which is better to use concreted types or interfaces for repos and db manager?
 type TransferService struct {
 	DB              database.DBManager
-	AccountRepo     accountRepository
-	TransactionRepo transactionRepository
+	AccountRepo     *repository.AccountRepository
+	TransactionRepo *repository.TransactionRepository
 }
 
 func NewTransferService(
 	db database.DBManager,
-	accountRepo accountRepository,
-	transactionRepo transactionRepository,
+	accountRepo *repository.AccountRepository,
+	transactionRepo *repository.TransactionRepository,
 ) *TransferService {
 	return &TransferService{
 		DB:              db,
@@ -42,26 +34,30 @@ func (s *TransferService) TransferMoney(fromAccountID, toAccountID uuid.UUID, am
 	var fromAccount, toAccount *model.Account
 	var transaction model.Transaction
 
-	err := s.DB.WithTransaction(func(tx database.Transaction) error {
+	// TODO: context is not passed.
+	err := s.DB.WithTransaction(func(tx database.DB) error {
 		var err error
 
-		if fromAccount, toAccount, err = s.validateAccounts(tx, fromAccountID, toAccountID, amount); err != nil {
+		txAccountRepo := s.AccountRepo.WithTx(tx)
+		txTransactionRepo := s.TransactionRepo.WithTx(tx)
+
+		if fromAccount, toAccount, err = s.validateAccounts(txAccountRepo, fromAccountID, toAccountID, amount); err != nil {
 			return err
 		}
 
 		transaction = s.createTransaction(fromAccount.CurrencyCode, amount, description)
 
-		if err := s.TransactionRepo.Create(tx, &transaction); err != nil {
+		if err := txTransactionRepo.Create(&transaction); err != nil {
 			return err
 		}
 
 		s.updateAccountBalances(fromAccount, toAccount, amount)
 
-		if err := s.createLedgerEntries(tx, &transaction, fromAccount, toAccount, amount); err != nil {
+		if err := s.createLedgerEntries(txTransactionRepo, &transaction, fromAccount, toAccount, amount); err != nil {
 			return err
 		}
 
-		if err := s.updateAccounts(tx, fromAccount, toAccount); err != nil {
+		if err := s.updateAccounts(txAccountRepo, fromAccount, toAccount); err != nil {
 			return err
 		}
 
@@ -75,13 +71,13 @@ func (s *TransferService) TransferMoney(fromAccountID, toAccountID uuid.UUID, am
 	return &transaction, fromAccount, toAccount, nil
 }
 
-func (s *TransferService) validateAccounts(tx database.Transaction, fromAccountID, toAccountID uuid.UUID, amount float64) (*model.Account, *model.Account, error) {
-	fromAccount, err := s.AccountRepo.FindByID(tx, fromAccountID, true)
+func (s *TransferService) validateAccounts(repo *repository.AccountRepository, fromAccountID, toAccountID uuid.UUID, amount float64) (*model.Account, *model.Account, error) {
+	fromAccount, err := repo.FindByID(fromAccountID, true)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	toAccount, err := s.AccountRepo.FindByID(tx, toAccountID, true)
+	toAccount, err := repo.FindByID(toAccountID, true)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -128,7 +124,7 @@ func (s *TransferService) updateAccountBalances(fromAccount, toAccount *model.Ac
 	toAccount.UpdatedAt = time.Now()
 }
 
-func (s *TransferService) createLedgerEntries(tx database.Transaction, transaction *model.Transaction, fromAccount, toAccount *model.Account, amount float64) error {
+func (s *TransferService) createLedgerEntries(repo *repository.TransactionRepository, transaction *model.Transaction, fromAccount, toAccount *model.Account, amount float64) error {
 	debitEntry := model.LedgerEntry{
 		TransactionID:  transaction.ID,
 		AccountID:      fromAccount.ID,
@@ -147,23 +143,23 @@ func (s *TransferService) createLedgerEntries(tx database.Transaction, transacti
 		CreatedAt:      time.Now(),
 	}
 
-	if err := s.TransactionRepo.CreateLedgerEntry(tx, &debitEntry); err != nil {
+	if err := repo.CreateLedgerEntry(&debitEntry); err != nil {
 		return err
 	}
 
-	if err := s.TransactionRepo.CreateLedgerEntry(tx, &creditEntry); err != nil {
+	if err := repo.CreateLedgerEntry(&creditEntry); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *TransferService) updateAccounts(tx database.Transaction, fromAccount, toAccount *model.Account) error {
-	if _, err := s.AccountRepo.Update(tx, fromAccount); err != nil {
+func (s *TransferService) updateAccounts(repo *repository.AccountRepository, fromAccount, toAccount *model.Account) error {
+	if _, err := repo.Update(fromAccount); err != nil {
 		return err
 	}
 
-	if _, err := s.AccountRepo.Update(tx, toAccount); err != nil {
+	if _, err := repo.Update(toAccount); err != nil {
 		return err
 	}
 

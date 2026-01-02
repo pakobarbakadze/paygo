@@ -57,7 +57,7 @@ func (s *AuditService) AuditAccount(accountID uuid.UUID) AuditResult {
 		AuditedAt:  time.Now(),
 	}
 
-	account, err := s.accountRepo.FindByID(nil, accountID, false)
+	account, err := s.accountRepo.FindByID(accountID, false)
 	if err != nil {
 		result.Status = AuditStatusIncomplete
 		result.Details = append(result.Details, fmt.Sprintf("Failed to fetch account: %v", err))
