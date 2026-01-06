@@ -13,5 +13,6 @@ func SetupAuditRoutes(rg *gin.RouterGroup, db database.DBManager) {
 	auditGroup := rg.Group("/audit")
 	{
 		auditGroup.GET("/accounts/:accountId", auditController.AuditAccount)
+		auditGroup.POST("/accounts", auditController.AuditAccounts)
 	}
 }

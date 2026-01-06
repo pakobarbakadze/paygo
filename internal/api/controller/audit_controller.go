@@ -50,3 +50,44 @@ func (c *AuditController) AuditAccount(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, result)
 }
+
+// AuditAccounts godoc
+// @Summary Audit multiple accounts
+// @Description Audit multiple accounts concurrently to detect fraud
+// @Tags audit
+// @Accept json
+// @Produce json
+// @Param accountIds body []string true "Array of Account IDs"
+// @Success 200 {array} service.AuditResult "Array of audit results"
+// @Failure 400 {object} map[string]interface{} "Invalid request body or account IDs"
+// @Router /audit/accounts [post]
+func (c *AuditController) AuditAccounts(ctx *gin.Context) {
+	var accountIDStrings []string
+
+	if err := ctx.ShouldBindJSON(&accountIDStrings); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body", "details": err.Error()})
+		return
+	}
+
+	if len(accountIDStrings) == 0 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "At least one account ID is required"})
+		return
+	}
+
+	accountIDs := make([]uuid.UUID, 0, len(accountIDStrings))
+	for _, idStr := range accountIDStrings {
+		accountID, err := uuid.Parse(idStr)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid account ID format", "invalid_id": idStr})
+			return
+		}
+		accountIDs = append(accountIDs, accountID)
+	}
+
+	results := c.AuditService.AuditAccounts(accountIDs)
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"total":   len(results),
+		"results": results,
+	})
+}

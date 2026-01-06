@@ -41,8 +41,6 @@ definitions:
         type: integer
       status:
         $ref: '#/definitions/paygo_internal_domain_service.AuditStatus'
-      transaction_count:
-        type: integer
     type: object
   paygo_internal_domain_service.AuditStatus:
     enum:
@@ -57,13 +55,9 @@ definitions:
   paygo_internal_domain_service.FraudType:
     enum:
     - BALANCE_MISMATCH
-    - MISSING_LEDGER_ENTRY
-    - ORPHANED_LEDGER_ENTRY
     type: string
     x-enum-varnames:
     - FraudTypeBalanceMismatch
-    - FraudTypeMissingLedgerEntry
-    - FraudTypeOrphanedLedgerEntry
 host: localhost:8080
 info:
   contact:
@@ -77,6 +71,37 @@ info:
   title: PayGo API
   version: "1.0"
 paths:
+  /audit/accounts:
+    post:
+      consumes:
+      - application/json
+      description: Audit multiple accounts concurrently to detect fraud
+      parameters:
+      - description: Array of Account IDs
+        in: body
+        name: accountIds
+        required: true
+        schema:
+          items:
+            type: string
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Array of audit results
+          schema:
+            items:
+              $ref: '#/definitions/paygo_internal_domain_service.AuditResult'
+            type: array
+        "400":
+          description: Invalid request body or account IDs
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Audit multiple accounts
+      tags:
+      - audit
   /audit/accounts/{accountId}:
     get:
       consumes:

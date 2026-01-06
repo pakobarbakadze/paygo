@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"paygo/internal/domain/model"
 	"paygo/internal/domain/repository"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -46,6 +47,31 @@ func NewAuditService(
 	return &AuditService{
 		accountRepo: accountRepo,
 	}
+}
+
+func (s *AuditService) AuditAccounts(accountIDs []uuid.UUID) []AuditResult {
+	resultChan := make(chan AuditResult, len(accountIDs))
+	var wg sync.WaitGroup
+
+	for _, id := range accountIDs {
+		wg.Add(1)
+		go func(accountID uuid.UUID) {
+			defer wg.Done()
+			resultChan <- s.AuditAccount(accountID)
+		}(id)
+	}
+
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	results := make([]AuditResult, 0, len(accountIDs))
+	for result := range resultChan {
+		results = append(results, result)
+	}
+
+	return results
 }
 
 func (s *AuditService) AuditAccount(accountID uuid.UUID) AuditResult {

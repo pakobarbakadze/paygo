@@ -23,6 +23,53 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/audit/accounts": {
+            "post": {
+                "description": "Audit multiple accounts concurrently to detect fraud",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "audit"
+                ],
+                "summary": "Audit multiple accounts",
+                "parameters": [
+                    {
+                        "description": "Array of Account IDs",
+                        "name": "accountIds",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of audit results",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/paygo_internal_domain_service.AuditResult"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or account IDs",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/audit/accounts/{accountId}": {
             "get": {
                 "description": "Audit an account to detect fraud by comparing ledger entries with transaction history",
@@ -189,9 +236,6 @@ const docTemplate = `{
                 },
                 "status": {
                     "$ref": "#/definitions/paygo_internal_domain_service.AuditStatus"
-                },
-                "transaction_count": {
-                    "type": "integer"
                 }
             }
         },
@@ -211,14 +255,10 @@ const docTemplate = `{
         "paygo_internal_domain_service.FraudType": {
             "type": "string",
             "enum": [
-                "BALANCE_MISMATCH",
-                "MISSING_LEDGER_ENTRY",
-                "ORPHANED_LEDGER_ENTRY"
+                "BALANCE_MISMATCH"
             ],
             "x-enum-varnames": [
-                "FraudTypeBalanceMismatch",
-                "FraudTypeMissingLedgerEntry",
-                "FraudTypeOrphanedLedgerEntry"
+                "FraudTypeBalanceMismatch"
             ]
         }
     }
