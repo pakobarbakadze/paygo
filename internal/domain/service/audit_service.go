@@ -49,6 +49,7 @@ func NewAuditService(
 	}
 }
 
+// TODO: (Improvement suggestion) Consider a worker pool pattern with limited concurrency:
 func (s *AuditService) AuditAccounts(accountIDs []uuid.UUID) []AuditResult {
 	resultChan := make(chan AuditResult, len(accountIDs))
 	var wg sync.WaitGroup
